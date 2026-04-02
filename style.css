@@ -1,0 +1,172 @@
+/* --- 1. CONFIGURAÇÕES GERAIS --- */
+body {
+    font-size: 16px;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+    background: #003366;
+    border-radius: 10px;
+}
+
+/* --- 2. LAYOUT DA BARRA LATERAL --- */
+.sidebar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sidebar-box {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* --- 3. CARD WHATSAPP (VERDE CLARO) --- */
+.whatsapp-promo-card {
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    border-radius: 1rem;
+    padding: 2rem 1.5rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 10px 15px -3px rgba(37, 211, 102, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-whatsapp-promo {
+    display: block;
+    width: 100%;
+    background: white;
+    color: #075E54;
+    font-weight: 800;
+    padding: 0.9rem;
+    border-radius: 0.6rem;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+/* --- 4. FOOTER E REDES SOCIAIS --- */
+.social-icon-orange {
+    color: #ffff; /* Laranja solicitado */
+    transition: transform 0.3s ease;
+}
+
+.social-icon-orange:hover {
+    transform: scale(1.15);
+}
+
+.footer-text-about {
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 1.5rem;
+    text-align: justify;
+}
+
+/* --- 5. ANIMAÇÕES --- */
+@keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulso { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.animar-entrada { animation: aparecer 0.4s ease-out forwards; }
+.animar-pulso { animation: pulso 2s infinite ease-in-out; }
+
+/* Estilização do Card de Grupo */
+.vip-group-section {
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.vip-card-container {
+    background: linear-gradient(90deg, #D97706, #B45309); /* Laranja LB Tour */
+    padding: 2px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.vip-card-content {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.vip-card-icon-box {
+    background: #FFF7ED;
+    padding: 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse-orange 2s infinite;
+}
+
+.megafone-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.vip-card-text {
+    flex: 1;
+    min-width: 250px;
+}
+
+.vip-card-text h3 {
+    color: #1E293B;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.vip-card-text h3 span {
+    color: #D97706;
+}
+
+.btn-vip {
+    background: #1E293B;
+    color: #fff !important;
+    padding: 15px 30px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.3s;
+}
+
+.btn-vip:hover {
+    background: #0F172A;
+    transform: translateY(-3px);
+}
+
+@keyframes pulse-orange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Ajuste para celular */
+@media (max-width: 768px) {
+    .vip-card-content { text-align: center; flex-direction: column; }
+    .vip-card-text { min-width: 100%; }
+}

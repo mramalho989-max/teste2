@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LB Tour - Cruzeiros</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .sombra-formulario { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animar-entrada { animation: aparecer 0.4s ease-out forwards; }
+        .icone-branco { filter: brightness(0) invert(1); }
+        @keyframes pulso { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .animar-pulso { animation: pulso 2s infinite ease-in-out; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scroll-mt-24 { scroll-margin-top: 6rem; }
+        .btn-whatsapp-flutuante { position: fixed; bottom: 30px; right: 30px; z-index: 1000; transition: transform 0.3s ease; }
+        .btn-whatsapp-flutuante:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- COMPONENTES AUXILIARES ---
+        
+        const PostDoBlog = ({ titulo, data, resumo, icone, detalhes, id }) => {
+            const [expandido, setExpandido] = React.useState(false);
+            return (
+                <div id={id} className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-600 mb-6 hover:shadow-md transition animar-entrada scroll-mt-24">
+                    <div className="flex items-center mb-3">
+                        <i className={`${icone} text-blue-900 mr-3 text-xl`}></i>
+                        <span className="text-xs font-bold text-slate-400 uppercase">{data}</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-blue-900 mb-2">{titulo}</h3>
+                    <div className="text-slate-600 text-sm leading-relaxed mb-3">{resumo}</div>
+                    {detalhes && (
+                        <div>
+                            <button onClick={() => setExpandido(!expandido)} className="text-orange-600 font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:text-orange-800 transition-colors focus:outline-none">
+                                {expandido ? 'Mostrar Menos' : 'Saiba Mais'}
+                                <i className={`fa-solid ${expandido ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                            </button>
+                            {expandido && <div className="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-lg text-slate-600 text-sm animar-entrada">{detalhes}</div>}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const CartaoCruzeiro = ({ imagem, titulo, navio, duracao, preco, precoAntigo, aoClicar }) => (
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden transition-transform hover:scale-[1.02] border border-slate-100">
+                <div className="relative">
+                    <img src={imagem} alt={titulo} className="w-full h-48 object-cover" />
+                </div>
+                <div className="p-5">
+                    <h3 className="text-xl font-bold text-slate-800 mb-2 leading-tight">{titulo}</h3>
+                    <p className="text-sm text-gray-500 mb-4"><i className="fa-solid fa-ship text-blue-900 mr-1"></i> {navio} • {duracao}</p>
+                    <div className="flex items-end justify-between border-t pt-4">
+                        <div>
+                            <span className="block text-xs text-gray-400 line-through leading-none">{precoAntigo}</span>
+                            <span className="text-2xl font-bold text-blue-900">{preco}</span>
+                        </div>
+                        <button onClick={aoClicar} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium shadow-md transition-colors">Detalhes</button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const CardVideo = ({ url, titulo, descricao }) => (
+            <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                <div className="aspect-video">
+                    <iframe className="w-full h-full" src={url} title={titulo} frameBorder="0" allowFullScreen></iframe>
+                </div>
+                <div className="p-4">
+                    <h4 className="font-bold text-blue-900 mb-1">{titulo}</h4>
+                    <p className="text-xs text-slate-500">{descricao}</p>
+                </div>
+            </div>
+        );
+
+        // --- COMPONENTE PRINCIPAL ---
+
+function App() {                                                                                                                                                                                                                            
+            const [abaAtiva, setAbaAtiva] = useState('inicio');
+            const [passageiros, setPassageiros] = useState(1);
+            
+            // ESTADOS PARA O FILTRO DINÂMICO
+            const [navioSelecionado, setNavioSelecionado] = useState('');
+            const [temporadaSelecionada, setTemporadaSelecionada] = useState('');
+
+            // MAPEAMENTO DE TEMPORADAS POR NAVIO (Conforme sua solicitação)
+            const temporadasPorNavio = {
+                'MSC Divina': ['JANEIRO - 2027', 'FEVEREIRO - 2027', 'MARÇO - 2027'],
+                'MSC Virtuosa': ['DEZEMBRO - 2026', 'JANEIRO - 2027', 'FEVEREIRO - 2027', 'MARÇO - 2027'],
+                'MSC Musica': ['DEZEMBRO - 2026', 'JANEIRO - 2027'],
+                'Prata I - Costa Diadema': ['JANEIRO - 2027'],
+                'Mini IX - Costa Diadema': ['MARÇO - 2027'],
+                'Mini IV - Costa Diadema': ['DEZEMBRO - 2026']
+            };
+
+            // FUNÇÃO PARA ENVIAR MENSAGEM AO WHATSAPP
+            const enviarOrcamento = () => {
+                if (!navioSelecionado || !temporadaSelecionada) {
+                    alert("Por favor, selecione o navio e a temporada.");
+                    return;
+                }
+                
+                const mensagem = `Olá! Gostaria de verificar a disponibilidade para o cruzeiro:\n\n` +
+                                 `🚢 *Navio:* ${navioSelecionado}\n` +
+                                 `📅 *Temporada:* ${temporadaSelecionada}\n` +
+                                 `👥 *Passageiros:* ${passageiros}`;
+                
+                const url = `https://wa.me/551732811500?text=${encodeURIComponent(mensagem)}`;
+                window.open(url, '_blank');
+            };
+
+            const irParaNavio = (idNavio) => {
+                setAbaAtiva('itinerario'); 
+                setTimeout(() => {
+                    const elemento = document.getElementById(idNavio);
+                    if (elemento) elemento.scrollIntoView({ behavior: 'smooth' }); 
+                }, 150);
+            };
+            
+            return (
+                <div className="bg-slate-50 min-h-screen">
+                    <header className="bg-white py-4 shadow-sm relative z-50">
+                        <div className="container mx-auto px-4 flex justify-center md:justify-start">
+                            <img src="icones/logo-cabeçalho.png" alt="LB Tour" className="h-16 md:h-20 object-contain" />
+                        </div>
+                    </header>
+
+                    {abaAtiva === 'inicio' && (
+                        <div className="bg-blue-900 pb-20">
+                            <section className="text-white pt-16 pb-24 px-4 text-center animar-entrada">
+                                <h2 className="text-4xl md:text-5xl font-extrabold mb-4 uppercase tracking-tight">Sua jornada começa <span className="text-orange-600">aqui</span></h2>
+                                <p className="text-xl text-blue-100 opacity-90 font-medium">Especialistas em Cruzeiros e Viagens Personalizadas</p>
+                            </section>
+                            <div className="container mx-auto px-4 -mt-12 relative z-10 animar-entrada">
+                                <div className="bg-white p-8 rounded-2xl shadow-2xl border-t-4 border-orange-600 max-w-6xl mx-auto">
+                                    <form className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                                        {/* SELEÇÃO DO NAVIO */}
+                                        <div className="flex flex-col">
+                                            <label className="text-xs font-black text-blue-900 mb-2 uppercase">CRUZEIRO</label>
+                                            <select 
+                                                value={navioSelecionado}
+                                                onChange={(e) => {
+                                                    setNavioSelecionado(e.target.value);
+                                                    setTemporadaSelecionada(''); // Limpa a temporada ao mudar o navio
+                                                }}
+                                                className="w-full h-[50px] px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
+                                            >
+                                                <option value="">ESCOLHA UM CRUZEIRO</option>
+                                                {Object.keys(temporadasPorNavio).map(navio => (
+                                                    <option key={navio} value={navio}>{navio}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* SELEÇÃO DE TEMPORADA (DINÂMICA) */}
+                                        <div className="flex flex-col">
+                                            <label className="text-xs font-black text-blue-900 mb-2 uppercase">Temporadas</label>
+                                            <select 
+                                                value={temporadaSelecionada}
+                                                onChange={(e) => setTemporadaSelecionada(e.target.value)}
+                                                disabled={!navioSelecionado}
+                                                className="w-full h-[50px] px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none disabled:opacity-50"
+                                            >
+                                                <option value="">
+                                                    {!navioSelecionado ? 'SELECIONE O NAVIO' : 'ESCOLHA A DATA'}
+                                                </option>
+                                                {navioSelecionado && temporadasPorNavio[navioSelecionado].map(temp => (
+                                                    <option key={temp} value={temp}>{temp}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* SELEÇÃO DE PASSAGEIROS (DROPDOWN) */}
+                                        <div className="flex flex-col">
+                                            <label className="text-xs font-black text-blue-900 mb-2 uppercase">Passageiros</label>
+                                            <select 
+                                                value={passageiros}
+                                                onChange={(e) => setPassageiros(Number(e.target.value))}
+                                                className="w-full h-[50px] px-4 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"
+                                            >
+                                                {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                                                    <option key={n} value={n}>{n} {n === 1 ? 'PASSAGEIRO' : 'PASSAGEIROS'}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* BOTÃO COM REDIRECIONAMENTO */}
+                                        <button 
+                                            type="button" 
+                                            onClick={enviarOrcamento}
+                                            className="w-full h-[50px] bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl uppercase text-xs transition-all"
+                                        >
+                                            Verificar Disponibilidade
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <nav className="bg-blue-900 text-white sticky top-0 z-40 shadow-lg">
+                        <div className="container mx-auto flex overflow-x-auto justify-center scrollbar-hide">
+                            {[ { id: 'inicio', label: 'Início', icone: 'fa-house' }, { id: 'itinerario', label: 'Itinerário', icone: 'fa-map-location-dot' }, { id: 'roteiro', label: 'Roteiro', icone: 'fa-route' }, { id: 'interior', label: 'Interior', icone: 'fa-solid fa-binoculars' } ].map(aba => (
+                                <button key={aba.id} onClick={() => setAbaAtiva(aba.id)} className={`px-10 py-5 flex items-center gap-2 font-bold uppercase text-xs transition-all min-w-max ${abaAtiva === aba.id ? 'bg-orange-600 border-b-4 border-white' : 'hover:bg-blue-800'}`}>
+                                    <i className={`fa-solid ${aba.icone}`}></i> {aba.label}
+                                </button>
+                            ))}
+                        </div>
+                    </nav>
+
+                    <main className="container mx-auto px-4 py-12 max-w-7xl">
+                            {abaAtiva === 'inicio' && (
+                                    <div className="animar-entrada py-10">
+                                    <h3 className="text-4xl font-black text-blue-900 uppercase mb-12 text-center">Ofertas <span className="text-orange-600">Destaque</span></h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <CartaoCruzeiro aoClicar={() => irParaNavio('navio-divina')} imagem="images/MSC-Divina.jpg" titulo="MSC Divina" navio="MSC Divina" duracao="7 noites" preco="R$ 10.000" precoAntigo="R$ 14.165" />
+                                    <CartaoCruzeiro aoClicar={() => irParaNavio('navio-virtuosa')} imagem="images/MSC-Virtuosa.webp" titulo="MSC Virtuosa" navio="MSC Virtuosa" duracao="7 noites" preco="R$ 10.899" precoAntigo="R$ 12.920" />
+                                    <CartaoCruzeiro aoClicar={() => irParaNavio('navio-musica')} imagem="images/MSC-musica (2).jpg" titulo="MSC Musica" navio="MSC Musica" duracao="8 noites" preco="R$ 14.800" precoAntigo="R$ 16.400" />
+                                </div>
+                                    {abaAtiva === 'inicio' && (
+                                    <div className="animar-entrada py-10">
+                                        <h3 className="text-4xl font-black text-blue-900 uppercase mb-12 text-center">Ofertas <span className="text-orange-600">Destaque</span></h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                        <CartaoCruzeiro aoClicar={() => irParaNavio('navio-diadema')} imagem="images/Costa-Diadema-2.jpg" titulo="Prata I" navio="Costa Diadema" duracao="7 noites" preco="R$ 9.200" precoAntigo="R$ 12.500" />
+                                        <CartaoCruzeiro aoClicar={() => irParaNavio('navio-mini-ix')} imagem="images/navio costa.webp" titulo="Costa Mini IX" navio="Costa Diadema" duracao="4 noites" preco="R$ 9.200" precoAntigo="R$ 12.500" />
+                                        <CartaoCruzeiro aoClicar={() => irParaNavio('navio-mini-iv')} imagem="images/Costa-Diadema.jpg" titulo="Costa Mini IV" navio="Costa Diadema" duracao="3 noites" preco="R$ 9.200" precoAntigo="R$ 12.500" />
+                                        </div>
+                                    </div>
+                                    )}
+
+                                <div className="mt-16 max-w-4xl mx-auto bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-1">
+                                    <div className="bg-white rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
+                                        <div className="bg-orange-100 p-4 rounded-full animar-pulso"><img src="icones/megafones.png" className="w-12 h-12" /></div>
+                                        <div className="flex-1"><h3 className="text-xl font-black text-blue-900">GRUPO VIP DE <span className="text-orange-600">PROMOÇÕES</span></h3>
+                                        <p className="text-slate-600 text-sm">RECEBA OFERTAS EXCLUSIVAS DIRETAMENTE NO SEU WHATSAPP! PROMOÇÕES RELÂMPAGO, DESCONTOS ESPECIAIS E NOVIDADES ANTES DE TODO MUNDO. NÃO PERCA ESSA OPORTUNIDADE ÚNICA DE VIAJAR MAIS POR MENOS!</p>
+                                        </div>
+                                        <a href="https://chat.whatsapp.com/JGFid9Y2ZXL5jNTnCL4pjT" className="bg-blue-900 text-white font-bold px-6 py-3 rounded-xl text-xs">ENTRAR NO GRUPO</a>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {abaAtiva === 'itinerario' && (
+                            <div className="animar-entrada max-w-5xl mx-auto">
+                                <h2 className="text-2xl font-black text-blue-900 mb-6 uppercase">Itinerários Disponíveis</h2>
+                                    {/* CORRIGIDO: ADICIONADO id="navio-divina" */}
+                                    <PostDoBlog 
+                                        id="navio-divina"
+                                        icone="fa-solid fa-anchor" 
+                                        data="2026 | 5 NOITES | PORTO DE SANTOS" 
+                                        titulo="MSC Divina" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 18:00</li>
+                                                    <li><strong>DIA 2 - Ilha Grande, Brasil:</strong> 08:00 - 18:00</li>
+                                                    <li><strong>DIA 3 - Búzios, Brasil:</strong> 08:00 - 19:00</li>
+                                                    <li><strong>DIA 4 - Navegando </strong></li>
+                                                    <li><strong>DIA 5 - Ilhabela, Brasil:</strong> 07:00 - 19:00</li>
+                                                    <li><strong>DIA 6 - Santos, Brasil:</strong> DESEMBARQUE - 08:00</li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-msc-divina.png" alt="Mapa do Roteiro" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Conheça o luxuoso MSC DIVINA, pela primeira vez com cruzeiros regulares no Brasil</p>
+                                                <p>O navio oferece entretenimento completo para toda a família, piscinas, hidromassagens, parque aquático, toboáguas, shows de nível internacional, academia equipada com aparelhos de última geração da Technogym, spa, miniclube para crianças em parceria com a LEGO® e a Chicco®, pista de boliche, cinema XD, quadra poliesportiva, lounges, discoteca e confortáveis cabines. Com embarques em SANTOS, BALNEÁRIO CAMBORIÚ e BUENOS AIRES, o MSC DIVINA realizará cruzeiros de 3 a 8 noites, de novembro de 2026 a março de 2027, rumo às praias tropicais brasileiras e aos encantos da ARGENTINA e URUGUAI.</p>
+                                            </div>
+                                        }
+                                    />
+
+                                    {/* CORRIGIDO: ADICIONADO id="navio-virtuosa" */}
+                                    <PostDoBlog 
+                                        id="navio-virtuosa"
+                                        icone="fa-solid fa-ship" 
+                                        data="2026 - 2027 | 7 NOITES | PORTO DE SANTOS" 
+                                        titulo="MSC Virtuosa" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 18:00 </li>
+                                                    <li><strong>DIA 2 - Búzios, Brasil:</strong> 10:00 - 19:00 </li>
+                                                    <li><strong>DIA 3 - Navegando </strong>  </li>
+                                                    <li><strong>DIA 4 - Salvador, Brasil:</strong> 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 5 - Maceió, Brasil:</strong> 09:00 - 17:00 </li>
+                                                    <li><strong>DIA 6 - Navegando </strong></li>
+                                                    <li><strong>DIA 7 - Navegando </strong></li>
+                                                    <li><strong>DIA 8 - Santos, Brasil:</strong> DESEMBARQUE - 08:00 </li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-msc-virtuosa.png" alt="Mapa do Roteiro 2" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Conheça o deslumbrante MSC VIRTUOSA,</p>
+                                                <p>Pela primeira vez no BRASIL na temporada de 2026/2027. Com sua Promenade ao estilo mediterrâneo coberta por uma cúpula de LED, o navio oferece amplas e confortáveis cabines, shows ao estilo Broadway, cinema XD, parque aquático, piscinas, toboáguas, academias, lojas, bares, lounges, áreas infantis em parceria com a LEGO® e Chicco® , e o melhor da gastronomia internacional. De novembro de 2026 a abril de 2027, embarque em SANTOS, SALVADOR ou MACEIÓ em cruzeiros de 3 a 7 noites pelo NORDESTE e pelas praias tropicais brasileiras</p>
+                                            </div>
+                                        }
+                                    />
+
+                                    {/* CORRIGIDO: ADICIONADO id="navio-musica" */}
+                                    <PostDoBlog 
+                                        id="navio-musica"
+                                        icone="fa-solid fa-anchor" 
+                                        data="2026 | 9 NOITES | PORTO DE SANTOS" 
+                                        titulo="MSC Musica" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 18:00 </li>
+                                                    <li><strong>DIA 2 - Navegando</strong> </li>
+                                                    <li><strong>DIA 3 - Navegando</strong> </li>
+                                                    <li><strong>DIA 4 - Montevidéu, Uruguai:</strong> 08:00 - 18:00 </li>
+                                                    <li><strong>DIA 5 - Punta Del Este, Uruguai:</strong> 08:00 - 18:00 </li>
+                                                    <li><strong>DIA 6 - Buenos Aires, Argentina:</strong> 08:00 - 18:00 </li>
+                                                    <li><strong>DIA 7 - Navegando</strong> </li>
+                                                    <li><strong>DIA 8 - Navegando</strong> </li>
+                                                    <li><strong>DIA 9 - Balneário Camboriú, Brasil:</strong> 08:00 - 18:00 </li>
+                                                    <li><strong>DIA 10 - Santos, Brasil:</strong> DESEMBARQUE - 08:00 </li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-msc-musica.png" alt="Mapa do Roteiro 2" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Explore cidades deslumbrantes a bordo do renovado MSC MUSICA</p> 
+                                                <p>Com muito conforto entretenimento completo e o melhor em exclusividade e privacidade com a área dedicada ao premiado conceito de luxo o MSC YACHT CLUB. Viva esta experiência por destinos encantadores na AMÉRICA DO SUL com opções de cruzeiros de 3 a 9 noites pelas praias do SUL e SUDESTE brasileiros, além das charmosas BUENOS AIRES, PUNTA DEL ESTE e MONTEVIDÉU com embarques em santos RIO DE JANEIRO, ITAJAÍ, PARANAGUÁ aproveite cada minuto a bordo, desfrutando dos lounge's e bares oferecidos restaurantes com gastronomia internacional, cafeteria italiana, boutiques, teatro, parque aquático, piscinas e áreas infantis. E para quem refere cuidar do bem estar o local ideal é o MSC AUREA SPA</p>
+                                            </div>
+                                        }
+                                    />
+                                    {/* COSTA DIADEMA */}
+                                    <PostDoBlog 
+                                        id="navio-diadema"
+                                        icone="fa-solid fa-ship" 
+                                        data="2026 | 7 NOITES | PORTO DE SANTOS" 
+                                        titulo="Prata I" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 2 - Navegando</strong> </li>
+                                                    <li><strong>DIA 3 - Navegando</strong> </li>
+                                                    <li><strong>DIA 4 - Buenos Aires, Argentina:</strong> 08:00 - 18:00 </li>
+                                                    <li><strong>DIA 5 - Montevidéu, Uruguai:</strong> 08:00 - 16:00 </li>
+                                                    <li><strong>DIA 6 - Navegando</strong> </li>
+                                                    <li><strong>DIA 7 - Itajaí, Brasil:</strong> 10:00 - 17:00 </li>
+                                                    <li><strong>DIA 8 - Santos, Brasil:</strong> DESEMBARQUE - 08:00 - 17:00 </li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-prata-i.webp" alt="Mapa do Roteiro Costa Diadema" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Descubra a majestade do Costa Diadema, a "Rainha do Mediterrâneo" agora em águas brasileiras.</p> 
+                                                <p>O navio oferece uma experiência única com a autêntica hospitalidade italiana. Desfrute de múltiplas piscinas, jacuzzis, um impressionante Samsara Spa, teatro com shows espetaculares de nível internacional, e uma variedade de restaurantes que vão desde a culinária tradicional italiana até opções asiáticas. Ideal para toda a família, com áreas dedicadas como o Squok Club para as crianças e muito entretenimento ao vivo.</p>
+                                            </div>
+                                        }
+                                    />
+
+                                    {/* COSTA MINI IX */}
+                                    <PostDoBlog 
+                                        id="navio-mini-ix"
+                                        icone="fa-solid fa-anchor" 
+                                        data="2027 | 4 NOITES | PORTO DE SANTOS" 
+                                        titulo="Mini IX" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 2 - Ilhabela, Brasil:</strong> 07:00 - 20:00 </li>
+                                                    <li><strong>DIA 3 - Navegando</strong> </li>
+                                                    <li><strong>DIA 4 - Itajaí, Brasil:</strong> 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 5 - Santos, Brasil:</strong> DESEMBARQUE - 08:00 - 17:00 </li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-mini-ix.webp" alt="Mapa do Roteiro Costa Mini IX" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Conheça a exclusividade e o charme do Costa Mini IX.</p> 
+                                                <p>Um navio planejado para oferecer uma experiência mais intimista sem abrir mão do luxo e do entretenimento padrão Costa Cruzeiros. Navegue pelas praias mais bonitas do litoral Sul e Sudeste do Brasil aproveitando gastronomia de alto padrão, festas temáticas ao ar livre, spa relaxante e serviço de quarto impecável. Uma escolha perfeita para casais e famílias que buscam conforto e destinos paradisíacos.</p>
+                                            </div>
+                                        }
+                                    />
+
+                                    {/* COSTA MINI IV */}
+                                    <PostDoBlog 
+                                        id="navio-mini-iv"
+                                        icone="fa-solid fa-ship" 
+                                        data="2026 | 3 NOITES | PORTO DE SANTOS" 
+                                        titulo="Mini IV" 
+                                        resumo={
+                                            <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                                                <ul className="space-y-2 mt-10 flex-1">
+                                                    <li><strong>DIA 1 - Santos, Brasil:</strong> EMBARQUE - 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 2 - Navegando</strong> </li>
+                                                    <li><strong>DIA 3 - Itajaí, Brasil:</strong> 08:00 - 17:00 </li>
+                                                    <li><strong>DIA 4 - Santos, Brasil:</strong> DESEMBARQUE - 08:00 - 17:00 </li>
+                                                </ul>
+                                                <div className="w-full md:w-[550px] h-[350px] flex-shrink-0">
+                                                    <img src="images/intinerario-mini-iv.webp" alt="Mapa do Roteiro Costa Prata XII" className="w-full h-full object-cover rounded-xl shadow-sm border border-slate-200" />
+                                                </div>
+                                            </div>
+                                        } 
+                                        detalhes={
+                                            <div className="flex flex-col gap-4">
+                                                <p>Aventure-se pela Bacia do Prata a bordo do elegante Costa Prata XII.</p> 
+                                                <p>Com um roteiro focado nos encantos da Argentina e do Uruguai, este navio traz o clima cosmopolita de Buenos Aires e o charme de Punta Del Este direto para as suas férias. O Costa Prata XII conta com infraestrutura de ponta, incluindo cassino estilo Las Vegas, espetáculos teatrais inéditos, diversas opções de bares temáticos e jantares de gala que farão da sua viagem uma memória inesquecível.</p>
+                                            </div>
+                                        }
+                                    />
+                            </div>
+                        )}
+
+                        {abaAtiva === 'roteiro' && (
+                            <div className="animar-entrada max-w-5xl mx-auto text-center py-20">
+                                <h2 className="text-2xl font-black text-blue-900 mb-4 uppercase">Roteiros Detalhados</h2>
+                                <p className="text-slate-500">Em breve, detalhamento dia a dia de cada destino.</p>
+                            </div>
+                        )}
+
+                        {abaAtiva === 'interior' && (
+                            <div className="animar-entrada max-w-6xl mx-auto px-4">
+                                <h2 className="text-2xl font-black text-blue-900 mb-8 uppercase text-center">
+                                    Conheça o Interior dos <span className="text-orange-600">Nossos Navios</span>
+                                </h2>
+                                
+                                {/* Grid configurado para 2 colunas no computador e 1 no celular */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    
+                                    {/* Espaço 1 - MSC DIVINA */}
+                                    <CardVideo 
+                                        url="https://www.youtube.com/embed/3YgYdDb45t4?si=dyohKIPMIm08SUa2" 
+                                        titulo="MSC DIVINA" 
+                                        descricao="Explore o luxo e a sofisticação inspirada na era de ouro dos transatlânticos." 
+                                    />
+
+                                    {/* Espaço 2 - MSC VIRTUOSA */}
+                                    <CardVideo 
+                                        url="https://www.youtube.com/embed/IAy9Vt9KAv0?si=iuKUxvT-6wSBMQxv" 
+                                        titulo="MSC VIRTUOSA" 
+                                        descricao="Conheça a promenade de LED e as atrações tecnológicas de um dos maiores navios da frota." 
+                                    />
+
+                                    {/* Espaço 3 - MSC MUSICA */}
+                                    <CardVideo 
+                                        url="https://www.youtube.com/embed/LrnNnp0PbXQ?si=dHV55UrDDJ9ECdCn" 
+                                        titulo="MSC MUSICA" 
+                                        descricao="Um mundo de elegância com cachoeiras triplas e piano suspenso no átrio." 
+                                    />
+
+                                    {/* Espaço 4 - COSTA DIADEMA */}
+                                    <CardVideo 
+                                        url="https://www.youtube.com/embed/xGeXigqSEZc?si=cM9_HRtYyL5cOiwr" 
+                                        titulo="COSTA DIADEMA" 
+                                        descricao="A Rainha do Mediterrâneo: detalhes da gastronomia e áreas de lazer italianas." 
+                                    />
+
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <footer className="bg-[#0a1128] text-white pt-20 pb-12">
+                        <div className="container mx-auto px-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-20">
+                                <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                                    <img src="icones/logo-cabeçalho.png" alt="LB Tour" className="h-16 mb-8 icone-branco" />
+                                    <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+                                        A LB Tour é uma agência de viagens com mais de 14 anos de experiência no mercado turístico, 
+                                        especializada em OLÍMPIA/SP e destinos NACIONAIS e INTERNACIONAIS. Nosso compromisso é 
+                                        entregar sua viagem com uma experiência segura, bem planejada e sem surpresas.
+                                    </p>
+                                </div>
+                                <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                                    <h4 className="font-black uppercase text-xs tracking-[0.3em] text-orange-600 mb-8">CONTATO</h4>
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-4 group">
+                                            <div className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                                <i className="fa-solid fa-location-dot text-sm"></i>
+                                            </div>
+                                            <span className="text-sm font-bold uppercase tracking-wider">OLÍMPIA, SP</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 group">
+                                            <div className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                                <i className="fa-solid fa-envelope text-sm"></i>
+                                            </div>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider">GERENCIA@LBTOUR.COM.BR</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center md:items-start text-center md:text-left">
+                                    <h4 className="font-black uppercase text-xs tracking-[0.3em] text-orange-600 mb-8">REDES SOCIAIS</h4>
+                                    <div className="flex gap-4">
+                                        <a href="https://www.facebook.com/share/1U4pbSL6AK/" target="_blank" className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center hover:bg-blue-600 transition-all hover:-translate-y-1 border border-slate-700">
+                                            <i className="fa-brands fa-facebook-f"></i>
+                                        </a>
+                                        <a href="https://www.instagram.com/lbtour?igsh=MWl0eXJ4eG85MGtj" target="_blank" className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center hover:bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-500 transition-all hover:-translate-y-1 border border-slate-700">
+                                            <i className="fa-brands fa-instagram text-lg"></i>
+                                        </a>
+                                        <a href="https://wa.me/551732811500" target="_blank" className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center hover:bg-green-600 transition-all hover:-translate-y-1 border border-slate-700">
+                                            <i className="fa-brands fa-whatsapp text-lg"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="border-t border-slate-800/50 pt-10 text-center">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em]">
+                                    © 2026 LB TOUR VIAGENS • CNPJ: 42.552.714/0001-52
+                                </p>
+                            </div>
+                        </div>
+                    </footer>
+
+                    <a href="https://wa.me/551732811500" target="_blank" className="btn-whatsapp-flutuante bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl">
+                        <i className="fa-brands fa-whatsapp text-3xl"></i>
+                    </a>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
